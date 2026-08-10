@@ -1,0 +1,21 @@
+{
+  "name": "rental-app-backend",
+  "version": "1.0.0",
+  "description": "Backend API for a small self-managed car rental business (fleet listing, bookings, UPI payment links, single-owner admin dashboard).",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node data/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cookie-parser": "^1.4.6",
+    "mongoose": "^8.5.0",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,16 @@
+# Secrets -- never commit real credentials
+backend/.env
+
+# Dependencies -- reinstalled via npm install, no need to commit
+node_modules/
+backend/node_modules/
+
+# Generated data -- recreated via `npm run seed`, don't want stale/demo
+# data committed over the real business's data
+backend/data/db.json
+
+# OS/editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

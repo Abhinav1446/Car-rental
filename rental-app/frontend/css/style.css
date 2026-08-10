@@ -1,0 +1,741 @@
+/* ==========================================================================
+   Design tokens
+   --------------------------------------------------------------------------
+   Palette: asphalt charcoal + warm paper, with amber as the single "go"
+   accent (booking actions) and teal reserved for secondary/owner-side UI.
+   Rust is used only for destructive/cancelled states, never decoration.
+
+   Type: Barlow Condensed for headings (road-sign, license-plate feel),
+   Inter for body copy, JetBrains Mono for anything numeric (prices, dates,
+   booking codes) so they read like data, not prose.
+
+   Signature element: vehicle cards carry a small license-plate-style price
+   badge, and section breaks use a dashed "route line" -- used sparingly,
+   only where it marks an actual transition.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap");
+
+:root {
+  --asphalt: #1b1f23;
+  --asphalt-soft: #262b31;
+  --cream: #f6f3ec;
+  --cream-dim: #ece7da;
+  --amber: #e8a33d;
+  --amber-dark: #c07f1f;
+  --teal: #2b6e68;
+  --teal-dark: #1f504b;
+  --rust: #c1502e;
+  --ink: #23262b;
+  --ink-soft: #5b5f66;
+  --white: #ffffff;
+
+  --font-display: "Barlow Condensed", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow-card: 0 1px 2px rgba(27, 31, 35, 0.06), 0 4px 16px rgba(27, 31, 35, 0.08);
+  --shadow-lift: 0 10px 30px rgba(27, 31, 35, 0.16);
+
+  --container: 1120px;
+}
+
+/* --------------------------------------------------------------------------
+   Reset & base
+   -------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--cream);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.05;
+  margin: 0 0 0.4em;
+  letter-spacing: 0.2px;
+}
+
+h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); font-weight: 700; }
+h2 { font-size: clamp(1.9rem, 4vw, 2.6rem); }
+h3 { font-size: 1.4rem; }
+
+p { margin: 0 0 1em; color: var(--ink-soft); }
+
+a {
+  color: var(--teal-dark);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; display: block; }
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.mono { font-family: var(--font-mono); }
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.btn:hover { text-decoration: none; }
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--amber);
+  color: var(--asphalt);
+}
+.btn-primary:hover { background: var(--amber-dark); }
+
+.btn-dark {
+  background: var(--asphalt);
+  color: var(--cream);
+}
+.btn-dark:hover { background: #000; }
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+.btn-outline:hover { border-color: var(--ink); background: rgba(0,0,0,0.03); }
+
+.btn-teal {
+  background: var(--teal);
+  color: var(--white);
+}
+.btn-teal:hover { background: var(--teal-dark); }
+
+.btn-danger {
+  background: transparent;
+  border-color: var(--rust);
+  color: var(--rust);
+}
+.btn-danger:hover { background: rgba(193, 80, 46, 0.08); }
+
+.btn-block { width: 100%; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* --------------------------------------------------------------------------
+   Navbar
+   -------------------------------------------------------------------------- */
+
+#site-nav {
+  background: var(--asphalt);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.nav-inner {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.brand:hover { text-decoration: none; }
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: var(--amber);
+  color: var(--asphalt);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.brand-mark-img {
+  background: transparent;
+  object-fit: contain;
+  padding: 0;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links a {
+  color: var(--cream-dim);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.nav-links a:hover { color: var(--white); text-decoration: none; }
+.nav-links a.active { color: var(--amber); }
+
+.nav-admin {
+  padding: 7px 14px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: var(--radius-sm);
+}
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+.nav-toggle span {
+  width: 22px;
+  height: 2px;
+  background: var(--cream);
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .nav-toggle { display: flex; }
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--asphalt);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    padding: 8px 24px 18px;
+    display: none;
+  }
+  .nav-links.open { display: flex; }
+  .nav-links li { width: 100%; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .nav-admin { display: inline-block; margin-top: 4px; }
+}
+
+/* --------------------------------------------------------------------------
+   Route-line divider -- the one recurring signature motif. Used only at
+   real section breaks (hero -> content, content -> footer), not decoration.
+   -------------------------------------------------------------------------- */
+
+.route-line {
+  height: 2px;
+  background-image: linear-gradient(to right, var(--amber) 60%, transparent 0%);
+  background-size: 22px 2px;
+  background-repeat: repeat-x;
+  border: none;
+  margin: 0;
+}
+
+.footer-route {
+  height: 2px;
+  background-image: linear-gradient(to right, rgba(255,255,255,0.35) 60%, transparent 0%);
+  background-size: 18px 2px;
+  background-repeat: repeat-x;
+  margin: 20px 0;
+}
+
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
+
+.hero {
+  background: var(--asphalt);
+  color: var(--cream);
+  padding: 88px 0 64px;
+}
+
+.hero-inner {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 14px;
+}
+
+.hero h1 { color: var(--white); max-width: 14ch; }
+
+.hero-tagline {
+  color: var(--cream-dim);
+  font-size: 1.15rem;
+  max-width: 46ch;
+  margin-bottom: 28px;
+}
+
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+
+.hero-stats {
+  display: flex;
+  gap: 40px;
+  margin-top: 56px;
+  flex-wrap: wrap;
+}
+
+.hero-stat .stat-num {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  color: var(--amber);
+  display: block;
+}
+.hero-stat .stat-label {
+  color: var(--cream-dim);
+  font-size: 0.85rem;
+}
+
+/* --------------------------------------------------------------------------
+   Section scaffolding
+   -------------------------------------------------------------------------- */
+
+.section { padding: 64px 0; }
+.section-dim { background: var(--cream-dim); }
+
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.section-head p { margin: 0; max-width: 50ch; }
+
+/* --------------------------------------------------------------------------
+   Vehicle cards -- the signature license-plate price badge
+   -------------------------------------------------------------------------- */
+
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.vehicle-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.vehicle-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+
+.vehicle-photo {
+  aspect-ratio: 16 / 10;
+  background: var(--cream-dim) center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  position: relative;
+}
+
+.vehicle-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+.vehicle-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.vehicle-body h3 { margin: 0; }
+
+.vehicle-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.vehicle-meta span {
+  background: var(--cream-dim);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+/* the "license plate" price badge */
+.price-plate {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: var(--asphalt);
+  color: var(--amber);
+  border: 2px solid var(--amber);
+  border-radius: 5px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+.price-plate small {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--cream-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.vehicle-card .btn { margin-top: auto; }
+
+.vehicle-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+.vehicle-card-actions .btn { margin-top: 0; flex: 1; }
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.badge-available { background: rgba(43, 110, 104, 0.12); color: var(--teal-dark); }
+.badge-unavailable { background: rgba(193, 80, 46, 0.12); color: var(--rust); }
+.badge-pending { background: rgba(232, 163, 61, 0.18); color: var(--amber-dark); }
+.badge-paid { background: rgba(43, 110, 104, 0.12); color: var(--teal-dark); }
+.badge-confirmed { background: rgba(43, 110, 104, 0.22); color: var(--teal-dark); }
+.badge-cancelled { background: rgba(193, 80, 46, 0.12); color: var(--rust); }
+
+/* --------------------------------------------------------------------------
+   Forms (booking form, admin forms, contact form)
+   -------------------------------------------------------------------------- */
+
+.form-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 28px;
+}
+
+.field { margin-bottom: 18px; }
+
+.field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 11px 13px;
+  border: 1px solid #d8d3c4;
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--ink);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--teal);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(43, 110, 104, 0.15);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 560px) {
+  .field-row { grid-template-columns: 1fr; }
+}
+
+.form-note {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.form-error {
+  background: rgba(193, 80, 46, 0.1);
+  color: var(--rust);
+  border: 1px solid rgba(193, 80, 46, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+}
+
+.form-success {
+  background: rgba(43, 110, 104, 0.1);
+  color: var(--teal-dark);
+  border: 1px solid rgba(43, 110, 104, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   Admin dashboard
+   -------------------------------------------------------------------------- */
+
+.admin-shell { background: var(--cream); min-height: 100vh; }
+
+.admin-header {
+  background: var(--asphalt);
+  color: var(--cream);
+  padding: 20px 0;
+}
+.admin-header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+.admin-tab {
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: var(--white);
+  color: var(--ink-soft);
+  border: 1px solid #ddd6c4;
+  cursor: pointer;
+}
+.admin-tab.active { background: var(--asphalt); color: var(--cream); border-color: var(--asphalt); }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.data-table th, .data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--cream-dim);
+}
+.data-table th {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ink-soft);
+  background: var(--cream-dim);
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table td.num { font-family: var(--font-mono); }
+
+.table-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.table-actions .btn { padding: 7px 12px; font-size: 0.82rem; }
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 56px 24px;
+  color: var(--ink-soft);
+}
+.empty-state h3 { color: var(--ink); }
+
+/* --------------------------------------------------------------------------
+   Simple content pages (about, policies)
+   -------------------------------------------------------------------------- */
+
+.prose { max-width: 68ch; }
+.prose h2 { margin-top: 1.6em; }
+.prose ul { color: var(--ink-soft); padding-left: 1.2em; }
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+
+#site-footer {
+  background: var(--asphalt);
+  color: var(--cream-dim);
+  padding: 40px 0 28px;
+}
+.footer-inner { text-align: center; }
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--white);
+  font-weight: 700;
+}
+.footer-links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+.footer-links a { color: var(--cream-dim); font-size: 0.88rem; }
+.footer-links a:hover { color: var(--white); }
+.footer-fine { font-size: 0.78rem; color: rgba(246,243,236,0.55); margin: 0; }
+
+/* --------------------------------------------------------------------------
+   Utilities
+   -------------------------------------------------------------------------- */
+
+.center { text-align: center; }
+.mt-0 { margin-top: 0; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.spread { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* --------------------------------------------------------------------------
+   Floating WhatsApp / Instagram buttons
+   -------------------------------------------------------------------------- */
+
+.floating-social {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 60;
+}
+
+.floating-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  box-shadow: var(--shadow-lift);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.floating-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  text-decoration: none;
+}
+
+.floating-whatsapp { background: #25d366; }
+.floating-instagram {
+  background: radial-gradient(circle at 30% 110%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+}
+
+@media (max-width: 560px) {
+  .floating-social { right: 14px; bottom: 14px; }
+  .floating-btn { width: 48px; height: 48px; }
+}
+
+/* Contact page link rows */
+.contact-link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--cream-dim);
+  color: var(--ink);
+}
+.contact-link-row:last-child { border-bottom: none; }
+.contact-link-row:hover { text-decoration: none; background: rgba(0,0,0,0.02); }
+.contact-link-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--cream-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--teal-dark);
+}
+.contact-link-text { display: flex; flex-direction: column; }
+.contact-link-label { font-size: 0.78rem; color: var(--ink-soft); }
+.contact-link-value { font-weight: 600; }

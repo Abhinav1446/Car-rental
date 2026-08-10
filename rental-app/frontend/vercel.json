@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://car-rental-sya2.onrender.com/api/:path*"
+    }
+  ]
+}

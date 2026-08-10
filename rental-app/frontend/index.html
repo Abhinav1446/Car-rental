@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alex Cars - Self-drive car rentals</title>
+  <meta name="description" content="Book a self-drive car in minutes. Pay by UPI, pick up locally, no paperwork hassle." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav id="site-nav"></nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="hero-eyebrow">Self-drive &middot; Local &middot; WhatsApp booking</p>
+      <h1>Your next ride is a message away.</h1>
+      <p class="hero-tagline">
+        Browse the fleet and message us on WhatsApp to check availability
+        and lock in your dates &mdash; quick replies, no forms to fill.
+      </p>
+      <div class="hero-actions">
+        <a href="fleet.html" class="btn btn-primary">See the fleet</a>
+        <a href="contact.html" class="btn btn-outline" style="color:#f6f3ec;border-color:rgba(246,243,236,0.4);">Ask a question</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="stat-num" id="statVehicleCount">&mdash;</span>
+          <span class="stat-label">Vehicles in the fleet</span>
+        </div>
+        <div class="hero-stat">
+          <span class="stat-num">WhatsApp</span>
+          <span class="stat-label">Quick replies, no call center</span>
+        </div>
+        <div class="hero-stat">
+          <span class="stat-num">1</span>
+          <span class="stat-label">Owner-managed, every booking</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <hr class="route-line" />
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Available now</h2>
+            <p>A snapshot of the fleet &mdash; full details, photos and booking on the fleet page.</p>
+          </div>
+          <a href="fleet.html" class="btn btn-outline">View all vehicles &rarr;</a>
+        </div>
+
+        <div id="previewGrid" class="vehicle-grid">
+          <p class="form-note">Loading vehicles&hellip;</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-dim">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>How it works</h2>
+            <p>Two steps, start to finish.</p>
+          </div>
+        </div>
+        <div class="vehicle-grid">
+          <div class="vehicle-card">
+            <div class="vehicle-body">
+              <span class="price-plate mono">01</span>
+              <h3>Browse the fleet</h3>
+              <p>Check out what's available, along with pricing, seats, and vehicle type.</p>
+            </div>
+          </div>
+          <div class="vehicle-card">
+            <div class="vehicle-body">
+              <span class="price-plate mono">02</span>
+              <h3>Enquire on WhatsApp</h3>
+              <p>Message us with your dates and we'll confirm availability and pickup details directly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container center">
+        <h2>Questions before you book?</h2>
+        <p class="prose" style="margin: 0 auto 20px;">Message us directly on WhatsApp &mdash; usually the fastest way to reach us.</p>
+        <a id="whatsappCta" href="#" target="_blank" rel="noopener" class="btn btn-teal">Chat on WhatsApp</a>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/vehicle-card.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>
