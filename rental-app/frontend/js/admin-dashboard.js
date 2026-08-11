@@ -270,25 +270,116 @@ const NEXT_STATUS_ACTIONS = {
   cancelled: [],
 };
 
+let allBookings = [];
+
 async function loadBookings() {
   const tbody = document.getElementById("bookingsTableBody");
   try {
-    const bookings = await api.get("/bookings");
-    if (bookings.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7">No bookings yet.</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = bookings.map(bookingRowHtml).join("");
-    attachBookingRowHandlers();
+    allBookings = await api.get("/bookings");
+    setupBookingFilters();
+    renderBookingStats(allBookings);
+    renderBookingsTable();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7">Couldn't load bookings: ${escapeHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8">Couldn't load bookings: ${escapeHtml(err.message)}</td></tr>`;
   }
+}
+
+function setupBookingFilters() {
+  const searchInput = document.getElementById("bookingSearch");
+  const statusFilter = document.getElementById("statusFilter");
+  const paymentFilter = document.getElementById("paymentFilter");
+
+  // Avoid attaching duplicate listeners if loadBookings() runs more than once
+  if (searchInput.dataset.wired) return;
+  searchInput.dataset.wired = "true";
+
+  searchInput.addEventListener("input", renderBookingsTable);
+  statusFilter.addEventListener("change", renderBookingsTable);
+  paymentFilter.addEventListener("change", renderBookingsTable);
+}
+
+function getFilteredBookings() {
+  const search = document.getElementById("bookingSearch").value.trim().toLowerCase();
+  const status = document.getElementById("statusFilter").value;
+  const payment = document.getElementById("paymentFilter").value;
+
+  return allBookings.filter((b) => {
+    if (status !== "all" && b.status !== status) return false;
+    if (payment !== "all" && b.paymentMethod !== payment) return false;
+    if (search) {
+      const haystack = `${b.customerName} ${b.phone}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function renderBookingsTable() {
+  const tbody = document.getElementById("bookingsTableBody");
+  const countEl = document.getElementById("bookingResultsCount");
+  const filtered = getFilteredBookings();
+
+  countEl.textContent =
+    filtered.length === allBookings.length
+      ? `${allBookings.length} booking(s) total.`
+      : `Showing ${filtered.length} of ${allBookings.length} booking(s).`;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8">No bookings match this filter.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(bookingRowHtml).join("");
+  attachBookingRowHandlers();
+}
+
+function renderBookingStats(bookings) {
+  const statsEl = document.getElementById("bookingStats");
+
+  const total = bookings.length;
+  const pendingCount = bookings.filter((b) => b.status === "pending").length;
+
+  const now = new Date();
+  const thisMonthRevenue = bookings
+    .filter((b) => {
+      if (!["paid", "confirmed"].includes(b.status)) return false;
+      const created = new Date(b.createdAt);
+      return created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth();
+    })
+    .reduce((sum, b) => sum + b.totalAmount, 0);
+
+  const vehicleCounts = {};
+  bookings.forEach((b) => {
+    vehicleCounts[b.vehicleName] = (vehicleCounts[b.vehicleName] || 0) + 1;
+  });
+  const mostBookedEntry = Object.entries(vehicleCounts).sort((a, b) => b[1] - a[1])[0];
+  const mostBooked = mostBookedEntry ? mostBookedEntry[0] : "\u2014";
+
+  const stats = [
+    { label: "Total bookings", value: total },
+    { label: "Pending", value: pendingCount },
+    { label: "Revenue this month", value: `\u20b9${thisMonthRevenue}` },
+    { label: "Most booked", value: mostBooked },
+  ];
+
+  statsEl.innerHTML = stats
+    .map(
+      (s) => `
+        <div class="vehicle-card" style="padding: 16px 18px;">
+          <p class="form-note" style="margin-bottom:4px;">${s.label}</p>
+          <p style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin:0;">${escapeHtml(String(s.value))}</p>
+        </div>
+      `
+    )
+    .join("");
 }
 
 function bookingRowHtml(b) {
   const actions = (NEXT_STATUS_ACTIONS[b.status] || [])
     .map((a) => `<button class="btn ${a.cls} btn-status" data-id="${b.id}" data-status="${a.status}">${a.label}</button>`)
     .join("");
+
+  const paymentLabel = b.paymentMethod === "cash" ? "Cash" : "UPI";
 
   return `
     <tr data-id="${b.id}">
@@ -297,6 +388,7 @@ function bookingRowHtml(b) {
       <td>${escapeHtml(b.vehicleName)}</td>
       <td>${b.startDate} &rarr; ${b.endDate}<br /><span class="form-note">${b.days} day(s)</span></td>
       <td class="num">&#8377;${b.totalAmount}</td>
+      <td>${paymentLabel}</td>
       <td><span class="badge badge-${b.status}">${b.status}</span></td>
       <td class="table-actions">${actions || "&mdash;"}</td>
     </tr>
