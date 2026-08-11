@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Check your booking - Alex Cars</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav id="site-nav"></nav>
+
+  <header class="hero" style="padding: 56px 0;">
+    <div class="hero-inner">
+      <p class="hero-eyebrow">Booking status</p>
+      <h1 style="max-width: none; font-size: clamp(2.2rem, 5vw, 3.2rem);">Check your booking.</h1>
+      <p class="hero-tagline">Enter your booking reference to see its current status.</p>
+    </div>
+  </header>
+
+  <hr class="route-line" />
+
+  <main class="section">
+    <div class="container" style="max-width: 560px;">
+
+      <form id="lookupForm" class="form-card stack" style="margin-bottom: 24px;">
+        <div class="field" style="margin-bottom: 0;">
+          <label for="refInput">Booking reference</label>
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="refInput" placeholder="e.g. 30fe657f" style="flex:1;" />
+            <button type="submit" class="btn btn-dark">Check</button>
+          </div>
+          <p class="form-note" style="margin-top:8px;">This was shown to you right after booking, and you can find it in your booking confirmation.</p>
+        </div>
+      </form>
+
+      <div id="statusResult"></div>
+
+    </div>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/vehicle-card.js"></script>
+  <script src="js/booking-status.js"></script>
+</body>
+</html>
