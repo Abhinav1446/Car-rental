@@ -16,19 +16,45 @@ function daysBetween(start, end) {
   return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
 }
 
+// Two date ranges [aStart, aEnd) and [bStart, bEnd) overlap if each starts
+// before the other ends. Using the end date as exclusive (i.e. the return
+// day) means a car returned on the 12th can be picked up by someone else
+// that same day -- standard rental-industry turnover convention.
+function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+  return new Date(aStart) < new Date(bEnd) && new Date(bStart) < new Date(aEnd);
+}
+
+// Bookings in these statuses hold the vehicle's dates. A cancelled booking
+// frees them back up.
+const BLOCKING_STATUSES = ["pending", "paid", "confirmed"];
+
 // --- Public: a customer submits a booking request ---
 
 router.post("/", async (req, res, next) => {
   try {
-    const { vehicleId, customerName, phone, startDate, endDate, notes } = req.body || {};
+    const { vehicleId, customerName, phone, startDate, endDate, notes, paymentMethod } = req.body || {};
 
     if (!vehicleId || !customerName || !phone || !startDate || !endDate) {
       return res.status(400).json({ detail: "Please fill in all required fields." });
     }
 
+    if (new Date(endDate) <= new Date(startDate)) {
+      return res.status(400).json({ detail: "Return date must be after the pickup date." });
+    }
+
+    const method = paymentMethod === "cash" ? "cash" : "upi";
+
     const vehicle = await Vehicle.findOne({ id: vehicleId });
     if (!vehicle) return res.status(404).json({ detail: "That vehicle could not be found." });
     if (!vehicle.available) return res.status(400).json({ detail: "That vehicle is not currently available." });
+
+    // Server-side double-booking check -- the calendar UI is just a
+    // convenience; this is what actually enforces it.
+    const existingBookings = await Booking.find({ vehicleId, status: { $in: BLOCKING_STATUSES } });
+    const hasOverlap = existingBookings.some((b) => rangesOverlap(startDate, endDate, b.startDate, b.endDate));
+    if (hasOverlap) {
+      return res.status(409).json({ detail: "Those dates were just booked by someone else. Please pick different dates." });
+    }
 
     const days = daysBetween(startDate, endDate);
     const totalAmount = days * vehicle.pricePerDay;
@@ -45,6 +71,7 @@ router.post("/", async (req, res, next) => {
       days,
       totalAmount,
       notes: notes || "",
+      paymentMethod: method,
       status: "pending",
       createdAt: new Date().toISOString(),
     });
@@ -79,6 +106,31 @@ router.get("/:id/upi-link", async (req, res, next) => {
     });
 
     res.json({ upiLink });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Public status lookup by booking reference -- powers the "check your
+// booking" page. Deliberately leaves phone number out of the response
+// since this endpoint doesn't require login (the booking id itself, an
+// 8-character random code, is what gates access).
+router.get("/status/:id", async (req, res, next) => {
+  try {
+    const booking = await Booking.findOne({ id: req.params.id });
+    if (!booking) return res.status(404).json({ detail: "Booking not found. Double check your booking reference." });
+
+    res.json({
+      id: booking.id,
+      vehicleName: booking.vehicleName,
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      days: booking.days,
+      totalAmount: booking.totalAmount,
+      paymentMethod: booking.paymentMethod,
+      status: booking.status,
+      createdAt: booking.createdAt,
+    });
   } catch (err) {
     next(err);
   }
