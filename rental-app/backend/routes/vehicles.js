@@ -1,6 +1,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const Vehicle = require("../models/Vehicle");
+const Booking = require("../models/Booking");
 const { requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
@@ -8,6 +9,10 @@ const router = express.Router();
 function newId() {
   return crypto.randomBytes(4).toString("hex");
 }
+
+// Bookings in these statuses hold the vehicle's dates (matches the same
+// list used in routes/bookings.js when checking for overlaps).
+const BLOCKING_STATUSES = ["pending", "paid", "confirmed"];
 
 // --- Public: anyone browsing the site can see the fleet ---
 
@@ -26,6 +31,24 @@ router.get("/:id", async (req, res, next) => {
     const vehicle = await Vehicle.findOne({ id: req.params.id });
     if (!vehicle) return res.status(404).json({ detail: "Vehicle not found." });
     res.json(vehicle);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Returns the date ranges this vehicle is already booked for, so the
+// booking calendar can grey them out. Only start/end dates are exposed --
+// no customer details -- since this is a public, no-login-required route.
+router.get("/:id/booked-dates", async (req, res, next) => {
+  try {
+    const vehicle = await Vehicle.findOne({ id: req.params.id });
+    if (!vehicle) return res.status(404).json({ detail: "Vehicle not found." });
+
+    const bookings = await Booking.find(
+      { vehicleId: req.params.id, status: { $in: BLOCKING_STATUSES } },
+      "startDate endDate -_id"
+    );
+    res.json(bookings);
   } catch (err) {
     next(err);
   }
