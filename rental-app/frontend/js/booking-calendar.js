@@ -9,7 +9,7 @@
 //     onChange: (selection) => { ... } // selection: { startDate, endDate } or null fields
 //   });
 
-function createBookingCalendar({ container, blockedRanges, onChange }) {
+function createBookingCalendar({ container, blockedRanges, onChange, mode = "range" }) {
   const blockedDates = expandRangesToDateSet(blockedRanges || []);
 
   let viewYear, viewMonth; // 0-indexed month, matches Date's convention
@@ -105,6 +105,14 @@ function createBookingCalendar({ container, blockedRanges, onChange }) {
   function handleDayClick(iso) {
     const clicked = new Date(iso + "T00:00:00");
 
+    if (mode === "single") {
+      selectedStart = clicked;
+      selectedEnd = null;
+      render();
+      onChange({ startDate: toIso(selectedStart), endDate: null });
+      return;
+    }
+
     if (!selectedStart || (selectedStart && selectedEnd)) {
       // Starting a fresh selection
       selectedStart = clicked;
@@ -137,7 +145,7 @@ function createBookingCalendar({ container, blockedRanges, onChange }) {
 
   render();
 
-  return { reset };
+  return { reset, getBlockedDates: () => blockedDates };
 }
 
 function startOfDay(date) {
@@ -176,4 +184,19 @@ function rangeCrossesBlockedDate(start, end, blockedDates) {
     cur.setDate(cur.getDate() + 1);
   }
   return false;
+}
+
+// Counts how many consecutive days are free starting the day after
+// startIso, stopping at the first blocked date (or a sane cap). Used to
+// limit how many days a customer can type into the "number of days" field
+// so they can't select past an already-booked date.
+function maxConsecutiveDays(startIso, blockedDates, cap = 60) {
+  let cur = new Date(startIso + "T00:00:00");
+  let count = 0;
+  for (let i = 1; i <= cap; i++) {
+    cur.setDate(cur.getDate() + 1);
+    if (blockedDates.has(toIso(cur))) break;
+    count = i;
+  }
+  return count;
 }
