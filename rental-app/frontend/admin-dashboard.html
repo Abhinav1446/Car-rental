@@ -115,6 +115,37 @@
 
     <!-- ============================= BOOKINGS ============================= -->
     <section id="tab-bookings" class="admin-panel" style="display:none;">
+
+      <div id="bookingStats" class="vehicle-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 24px;"></div>
+
+      <div class="form-card" style="margin-bottom: 20px; padding: 16px 18px;">
+        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px;">
+          <div class="field" style="margin-bottom:0;">
+            <label for="bookingSearch">Search</label>
+            <input type="text" id="bookingSearch" placeholder="Customer name or phone" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter">
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="paymentFilter">Payment</label>
+            <select id="paymentFilter">
+              <option value="all">All methods</option>
+              <option value="upi">UPI</option>
+              <option value="cash">Cash</option>
+            </select>
+          </div>
+        </div>
+        <p id="bookingResultsCount" class="form-note" style="margin: 10px 0 0;"></p>
+      </div>
+
       <div class="table-wrap">
         <table class="data-table">
           <thead>
@@ -124,12 +155,13 @@
               <th>Vehicle</th>
               <th>Dates</th>
               <th>Amount</th>
+              <th>Payment</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="bookingsTableBody">
-            <tr><td colspan="7">Loading&hellip;</td></tr>
+            <tr><td colspan="8">Loading&hellip;</td></tr>
           </tbody>
         </table>
       </div>
