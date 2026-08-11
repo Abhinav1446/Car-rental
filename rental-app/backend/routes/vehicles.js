@@ -10,9 +10,12 @@ function newId() {
   return crypto.randomBytes(4).toString("hex");
 }
 
-// Bookings in these statuses hold the vehicle's dates (matches the same
-// list used in routes/bookings.js when checking for overlaps).
-const BLOCKING_STATUSES = ["pending", "paid", "confirmed"];
+// Only paid/confirmed bookings hold the vehicle's dates -- a pending
+// (unverified) booking doesn't block the calendar, so a booking that's
+// never paid for doesn't permanently tie up dates. The tradeoff: two
+// customers could both end up "pending" for the same dates. That's caught
+// separately when the owner tries to verify one (see routes/bookings.js).
+const BLOCKING_STATUSES = ["paid", "confirmed"];
 
 // --- Public: anyone browsing the site can see the fleet ---
 
