@@ -11,6 +11,7 @@ const bookingSchema = new mongoose.Schema({
   days: { type: Number, required: true },
   totalAmount: { type: Number, required: true },
   notes: { type: String, default: "" },
+  paymentMethod: { type: String, enum: ["upi", "cash"], default: "upi" },
   status: { type: String, default: "pending" }, // pending -> paid -> confirmed (or -> cancelled)
   createdAt: { type: String, required: true },
 });
