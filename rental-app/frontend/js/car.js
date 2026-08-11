@@ -29,10 +29,17 @@ function renderVehicleDetail(vehicle) {
       </div>
 
       <div id="bookingPanel" class="form-card" style="display:none; margin-top:20px;">
-        <h3 class="mt-0">Pick your dates</h3>
+        <h3 class="mt-0">Pick your pickup date</h3>
         <div id="bookingError"></div>
         <div id="calendarMount"></div>
-        <p id="selectionSummary" class="form-note" style="margin:16px 0;">Select a pickup date, then a return date.</p>
+
+        <div class="field" style="margin-top:16px;">
+          <label for="bk_days">Number of days</label>
+          <input type="number" id="bk_days" min="1" step="1" disabled placeholder="Pick a date above first" />
+          <p id="daysHint" class="form-note" style="margin-top:6px;"></p>
+        </div>
+
+        <p id="selectionSummary" class="form-note" style="margin:16px 0;"></p>
 
         <div class="field">
           <label for="bk_name">Your name</label>
@@ -196,11 +203,14 @@ function setupBookingPanel(vehicle) {
   const showBtn = document.getElementById("showBookingBtn");
   const panel = document.getElementById("bookingPanel");
   const calendarMount = document.getElementById("calendarMount");
+  const daysInput = document.getElementById("bk_days");
+  const daysHint = document.getElementById("daysHint");
   const summaryEl = document.getElementById("selectionSummary");
   const submitBtn = document.getElementById("bookingSubmit");
   const errorBox = document.getElementById("bookingError");
 
-  let selection = { startDate: null, endDate: null };
+  let pickupDate = null; // ISO string
+  let blockedDates = new Set();
   let calendar = null;
   let selectedMethod = "upi";
 
@@ -226,27 +236,69 @@ function setupBookingPanel(vehicle) {
     calendar = createBookingCalendar({
       container: calendarMount,
       blockedRanges,
-      onChange: handleSelectionChange,
+      mode: "single",
+      onChange: handlePickupChange,
     });
+    blockedDates = calendar.getBlockedDates();
   }
 
-  function handleSelectionChange(sel) {
-    selection = sel;
-    if (selection.startDate && selection.endDate) {
-      const days = daysBetween(selection.startDate, selection.endDate);
-      const total = days * vehicle.pricePerDay;
-      summaryEl.innerHTML = `${selection.startDate} &rarr; ${selection.endDate} &middot; ${days} day(s) &middot; <strong>&#8377;${total}</strong>`;
-      submitBtn.disabled = false;
-      submitBtn.textContent = `Confirm booking \u2014 \u20b9${total}`;
-    } else if (selection.startDate) {
-      summaryEl.textContent = "Now pick your return date.";
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Select dates to continue";
-    } else {
-      summaryEl.textContent = "Select a pickup date, then a return date.";
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Select dates to continue";
+  function handlePickupChange(sel) {
+    pickupDate = sel.startDate;
+    daysInput.value = "";
+    updateSummary();
+
+    if (!pickupDate) {
+      daysInput.disabled = true;
+      daysInput.placeholder = "Pick a date above first";
+      daysHint.textContent = "";
+      return;
     }
+
+    const maxDays = maxConsecutiveDays(pickupDate, blockedDates);
+    daysInput.disabled = false;
+    daysInput.max = maxDays;
+    daysInput.placeholder = "e.g. 3";
+
+    if (maxDays === 0) {
+      daysHint.textContent = "That date is booked the very next day too -- please choose a different pickup date.";
+      daysInput.disabled = true;
+    } else {
+      daysHint.textContent = `Up to ${maxDays} day(s) available from this date before the next booking.`;
+    }
+  }
+
+  daysInput.addEventListener("input", updateSummary);
+
+  function updateSummary() {
+    const days = Number(daysInput.value);
+
+    if (!pickupDate) {
+      summaryEl.textContent = "Select a pickup date on the calendar above.";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Select dates to continue";
+      return;
+    }
+
+    if (!days || days < 1) {
+      summaryEl.textContent = "Enter how many days you'd like to rent for.";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Select dates to continue";
+      return;
+    }
+
+    const maxDays = maxConsecutiveDays(pickupDate, blockedDates);
+    if (days > maxDays) {
+      summaryEl.innerHTML = `<span style="color:var(--rust);">Only ${maxDays} day(s) available from this date.</span>`;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Select dates to continue";
+      return;
+    }
+
+    const endDate = addDays(pickupDate, days);
+    const total = days * vehicle.pricePerDay;
+    summaryEl.innerHTML = `${pickupDate} &rarr; ${endDate} &middot; ${days} day(s) &middot; <strong>&#8377;${total}</strong>`;
+    submitBtn.disabled = false;
+    submitBtn.textContent = `Confirm booking \u2014 \u20b9${total}`;
   }
 
   document.querySelectorAll(".payment-method-option").forEach((label) => {
@@ -263,15 +315,18 @@ function setupBookingPanel(vehicle) {
 
     const customerName = document.getElementById("bk_name").value.trim();
     const phone = document.getElementById("bk_phone").value.trim();
+    const days = Number(daysInput.value);
 
     if (!customerName || !phone) {
       errorBox.innerHTML = `<p class="form-error">Please enter your name and phone number.</p>`;
       return;
     }
-    if (!selection.startDate || !selection.endDate) {
-      errorBox.innerHTML = `<p class="form-error">Please select your pickup and return dates.</p>`;
+    if (!pickupDate || !days || days < 1) {
+      errorBox.innerHTML = `<p class="form-error">Please select a pickup date and number of days.</p>`;
       return;
     }
+
+    const endDate = addDays(pickupDate, days);
 
     submitBtn.disabled = true;
     submitBtn.textContent = "Booking\u2026";
@@ -281,8 +336,8 @@ function setupBookingPanel(vehicle) {
         vehicleId: vehicle.id,
         customerName,
         phone,
-        startDate: selection.startDate,
-        endDate: selection.endDate,
+        startDate: pickupDate,
+        endDate,
         paymentMethod: selectedMethod,
       });
 
@@ -296,11 +351,22 @@ function setupBookingPanel(vehicle) {
       submitBtn.textContent = "Try again";
 
       // If the dates were just taken by someone else, refresh the calendar
-      // so the customer sees the up-to-date availability immediately.
+      // so the customer sees up-to-date availability immediately.
       if (err.message && err.message.toLowerCase().includes("booked by someone else")) {
         await initCalendar();
-        handleSelectionChange({ startDate: null, endDate: null });
+        pickupDate = null;
+        daysInput.value = "";
+        updateSummary();
       }
     }
   });
+}
+
+function addDays(startIso, days) {
+  const d = new Date(startIso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
