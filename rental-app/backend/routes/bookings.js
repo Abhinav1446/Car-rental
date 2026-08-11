@@ -24,9 +24,9 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   return new Date(aStart) < new Date(bEnd) && new Date(bStart) < new Date(aEnd);
 }
 
-// Bookings in these statuses hold the vehicle's dates. A cancelled booking
-// frees them back up.
-const BLOCKING_STATUSES = ["pending", "paid", "confirmed"];
+// Only paid/confirmed bookings hold the vehicle's dates -- see the note
+// in routes/vehicles.js for the reasoning and the tradeoff this creates.
+const BLOCKING_STATUSES = ["paid", "confirmed"];
 
 // --- Public: a customer submits a booking request ---
 
@@ -155,8 +155,29 @@ router.put("/:id", requireAdmin, async (req, res, next) => {
       return res.status(400).json({ detail: "Invalid status." });
     }
 
-    const booking = await Booking.findOneAndUpdate({ id: req.params.id }, { status }, { new: true });
+    const booking = await Booking.findOne({ id: req.params.id });
     if (!booking) return res.status(404).json({ detail: "Booking not found." });
+
+    // Since pending bookings don't block each other, two customers could
+    // both end up pending for the same dates. Catch that here: before
+    // actually verifying/confirming one, make sure it doesn't collide with
+    // another booking that's already paid/confirmed for the same vehicle.
+    if (BLOCKING_STATUSES.includes(status)) {
+      const others = await Booking.find({
+        vehicleId: booking.vehicleId,
+        id: { $ne: booking.id },
+        status: { $in: BLOCKING_STATUSES },
+      });
+      const conflict = others.find((b) => rangesOverlap(booking.startDate, booking.endDate, b.startDate, b.endDate));
+      if (conflict) {
+        return res.status(409).json({
+          detail: `These dates conflict with another ${conflict.status} booking (ref ${conflict.id}, ${conflict.startDate} to ${conflict.endDate}) for the same vehicle. Cancel or resolve that one first.`,
+        });
+      }
+    }
+
+    booking.status = status;
+    await booking.save();
     res.json(booking);
   } catch (err) {
     next(err);
