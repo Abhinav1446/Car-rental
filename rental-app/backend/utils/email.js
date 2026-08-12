@@ -1,43 +1,31 @@
-const nodemailer = require("nodemailer");
+// Sends booking notifications via Brevo's HTTP API (not SMTP).
+//
+// Why not SMTP: Render's free tier blocks outbound traffic on SMTP ports
+// (25, 465, 587) to prevent spam abuse, which breaks services like Gmail
+// SMTP entirely -- no amount of correct credentials fixes that, since it's
+// blocked at the network level. An HTTPS API call (like this one) uses the
+// same kind of connection as any other web request, which isn't blocked.
 
-let transporter = null;
-
-// Lazily creates the mail transporter. Returns null if notifications
-// aren't configured yet, so the app can run fine without them -- booking
-// creation should never fail just because email isn't set up.
-function getTransporter() {
-  if (transporter) return transporter;
-
-  const user = process.env.NOTIFY_EMAIL_USER;
-  const pass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-  if (!user || !pass) return null;
-
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user, pass },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
-  return transporter;
-}
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 // Fire-and-forget: callers should NOT await this before responding to the
 // customer, so a slow or failed email never delays or breaks their booking.
 async function sendBookingNotification(booking) {
-  const mailer = getTransporter();
-  if (!mailer) {
-    console.log("Email notifications not configured (set NOTIFY_EMAIL_USER / NOTIFY_EMAIL_APP_PASSWORD) -- skipping.");
+  const apiKey = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.NOTIFY_FROM_EMAIL;
+
+  if (!apiKey || !fromEmail) {
+    console.log("Email notifications not configured (set BREVO_API_KEY / NOTIFY_FROM_EMAIL) -- skipping.");
     return;
   }
 
-  const to = process.env.NOTIFY_EMAIL_TO || process.env.NOTIFY_EMAIL_USER;
+  const toEmail = process.env.NOTIFY_EMAIL_TO || fromEmail;
   const fromName = process.env.NOTIFY_FROM_NAME || "Booking Notifications";
   const paymentLabel = booking.paymentMethod === "cash" ? "Cash at pickup" : "UPI";
 
   const subject = `New booking: ${booking.vehicleName} (${booking.startDate} to ${booking.endDate})`;
 
-  const text = [
+  const textContent = [
     "New booking received.",
     "",
     `Vehicle: ${booking.vehicleName}`,
@@ -53,12 +41,32 @@ async function sendBookingNotification(booking) {
   ].join("\n");
 
   try {
-    await mailer.sendMail({
-      from: `"${fromName}" <${process.env.NOTIFY_EMAIL_USER}>`,
-      to,
-      subject,
-      text,
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const res = await fetch(BREVO_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "api-key": apiKey,
+      },
+      body: JSON.stringify({
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: toEmail }],
+        subject,
+        textContent,
+      }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      throw new Error(`Brevo API returned ${res.status}: ${errBody}`);
+    }
+
     console.log(`Booking notification email sent for ${booking.id}.`);
   } catch (err) {
     // Never let an email failure affect the booking flow -- just log it.
