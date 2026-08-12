@@ -349,9 +349,11 @@ function renderBookingStats(bookings) {
     .reduce((sum, b) => sum + b.totalAmount, 0);
 
   const vehicleCounts = {};
-  bookings.forEach((b) => {
-    vehicleCounts[b.vehicleName] = (vehicleCounts[b.vehicleName] || 0) + 1;
-  });
+  bookings
+    .filter((b) => ["paid", "confirmed"].includes(b.status))
+    .forEach((b) => {
+      vehicleCounts[b.vehicleName] = (vehicleCounts[b.vehicleName] || 0) + 1;
+    });
   const mostBookedEntry = Object.entries(vehicleCounts).sort((a, b) => b[1] - a[1])[0];
   const mostBooked = mostBookedEntry ? mostBookedEntry[0] : "\u2014";
 
