@@ -4,6 +4,7 @@ const Vehicle = require("../models/Vehicle");
 const Booking = require("../models/Booking");
 const { requireAdmin } = require("../middleware/auth");
 const { buildUpiLink } = require("../utils/upi");
+const { sendBookingNotification } = require("../utils/email");
 
 const router = express.Router();
 
@@ -83,6 +84,10 @@ router.post("/", async (req, res, next) => {
       note: `${vehicle.name} rental (${days}d) - booking ${bookingId}`,
       txnRef: bookingId,
     });
+
+    // Fire-and-forget -- the customer's booking is already saved and
+    // shouldn't wait on (or fail because of) an email send.
+    sendBookingNotification(booking);
 
     res.status(201).json({ booking, upiLink });
   } catch (err) {
